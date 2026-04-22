@@ -1,0 +1,10 @@
+#!/bin/bash
+
+## Description: Pull both files and database from WP Engine
+## Usage: rpx-pull
+## Example: ddev rpx-pull
+
+set -e
+
+ddev rpx-files
+ddev rpx-db

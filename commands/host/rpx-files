@@ -1,0 +1,35 @@
+#!/bin/bash
+
+## Description: Pull wp-content from WP Engine (themes, plugins, uploads)
+## Usage: rpx-files
+## Example: ddev rpx-files
+
+set -e
+source .env
+
+if [ -z "$WPENGINE_ENV" ]; then
+  echo "Error: WPENGINE_ENV is not set in .env"
+  exit 1
+fi
+
+WPENGINE_SSH="${WPENGINE_ENV}@${WPENGINE_ENV}.ssh.wpengine.net"
+REMOTE_PATH="/sites/${WPENGINE_ENV}/wp-content"
+
+echo "Pulling wp-content from ${WPENGINE_ENV}..."
+
+ddev exec rsync -avz --progress \
+  -e "ssh -o StrictHostKeyChecking=accept-new" \
+  --exclude="cache/" \
+  --exclude="backup-db/" \
+  --exclude="updraft/" \
+  --exclude="mu-plugins/wpengine-common/" \
+  --exclude="mu-plugins/wpe-*" \
+  --exclude="mu-plugins/wpengine-security-auditor.php" \
+  --exclude="mu-plugins/mu-plugin.php" \
+  --exclude="mu-plugins/slt-force-strong-passwords.php" \
+  --exclude="mu-plugins/force-strong-passwords/" \
+  "${WPENGINE_SSH}:${REMOTE_PATH}/" \
+  /var/www/html/wp-content/
+
+echo ""
+echo "Done. wp-content is up to date."

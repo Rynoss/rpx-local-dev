@@ -1,0 +1,9 @@
+name: rpx-local-dev
+
+# Commands copied into .ddev/commands/host/
+project_files:
+  - commands/host/rpx-setup
+  - commands/host/rpx-pull
+  - commands/host/rpx-db
+  - commands/host/rpx-files
+  - php/display-errors.ini

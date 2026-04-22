@@ -1,0 +1,171 @@
+#!/bin/bash
+
+## Description: First-time project setup (pull files + DB from WP Engine)
+## Usage: rpx-setup
+## Example: ddev rpx-setup
+
+set -e
+
+# Load .env
+if [ ! -f .env ]; then
+  echo "Error: .env file not found. Create it first."
+  exit 1
+fi
+source .env
+
+if [ -z "$WPENGINE_ENV" ] || [ -z "$PRODUCTION_URL" ]; then
+  echo "Error: WPENGINE_ENV and PRODUCTION_URL must be set in .env"
+  exit 1
+fi
+
+SITE_URL=$(ddev describe -j | grep -o '"https://[^"]*"' | head -1 | tr -d '"')
+LOCAL_DOMAIN=$(echo "$SITE_URL" | sed -E 's|https?://||')
+
+echo ""
+echo "============================================"
+echo "RPX Local Dev Setup"
+echo "Environment: $WPENGINE_ENV"
+if [ "$IS_MULTISITE" = "yes" ]; then
+  echo "Type: Multisite Network"
+fi
+echo "============================================"
+echo ""
+
+# Add SSH keys to DDEV's agent
+echo "Loading SSH keys..."
+ddev auth ssh
+
+# Configure multisite Nginx + hooks if needed
+if [ "$IS_MULTISITE" = "yes" ]; then
+  echo "Configuring multisite Nginx rules..."
+
+  mkdir -p .ddev/nginx_full
+  cat > .ddev/nginx_full/nginx-site.conf << 'NGINXEOF'
+# WordPress multisite subdirectory Nginx config
+# Based on DDEV default + official WordPress rules from:
+# https://developer.wordpress.org/advanced-administration/server/web-server/nginx/
+
+server {
+    listen 80 default_server;
+    listen 443 ssl default_server;
+
+    root /var/www/html;
+
+    ssl_certificate /etc/ssl/certs/master.crt;
+    ssl_certificate_key /etc/ssl/certs/master.key;
+
+    include /etc/nginx/monitoring.conf;
+
+    index index.php index.htm index.html;
+
+    sendfile off;
+    error_log /dev/stdout info;
+    access_log /var/log/nginx/access.log;
+
+    location = /favicon.ico { log_not_found off; access_log off; }
+    location = /robots.txt { allow all; log_not_found off; access_log off; }
+    location ~ /\. { deny all; }
+    location ~* /(?:uploads|files)/.*\.php$ { deny all; }
+
+    # Official WordPress multisite subdirectory rewrite rules
+    if (!-e $request_filename) {
+        rewrite /wp-admin$ $scheme://$host$uri/ permanent;
+        rewrite ^/[_0-9a-zA-Z-]+(/wp-.*) $1 last;
+        rewrite ^/[_0-9a-zA-Z-]+(/.*\.php)$ $1 last;
+    }
+
+    location / {
+        absolute_redirect off;
+        try_files $uri $uri/ /index.php?$args;
+    }
+
+    location ~ \.php$ {
+        try_files $uri =404;
+        fastcgi_split_path_info ^(.+\.php)(/.+)$;
+        fastcgi_pass unix:/run/php-fpm.sock;
+        fastcgi_buffers 16 16k;
+        fastcgi_buffer_size 32k;
+        fastcgi_param SCRIPT_FILENAME $document_root$fastcgi_script_name;
+        fastcgi_param SCRIPT_NAME $fastcgi_script_name;
+        fastcgi_index index.php;
+        include fastcgi_params;
+        fastcgi_intercept_errors off;
+        fastcgi_read_timeout 10m;
+        fastcgi_param SERVER_NAME $host;
+        fastcgi_param HTTPS $fcgi_https;
+        fastcgi_pass_header "X-Accel-Buffering";
+        fastcgi_pass_header "X-Accel-Charset";
+        fastcgi_pass_header "X-Accel-Expires";
+        fastcgi_pass_header "X-Accel-Limit-Rate";
+        fastcgi_pass_header "X-Accel-Redirect";
+    }
+
+    location ~* \.(jpg|jpeg|gif|png|ico|cur|gz|svg|svgz|mp4|ogg|ogv|webm|webp|htc)$ {
+        expires max;
+        log_not_found off;
+        try_files $uri /index.php$is_args$args;
+    }
+
+    location ~* \.(js|css)$ {
+        expires -1;
+        log_not_found off;
+    }
+
+    include /etc/nginx/common.d/*.conf;
+}
+NGINXEOF
+
+  # Add post-start hooks to config.yaml for multisite constants (if not already present)
+  if ! grep -q "hooks:" .ddev/config.yaml; then
+    cat >> .ddev/config.yaml << HOOKSEOF
+
+# Re-apply multisite constants and debug settings after every start/restart
+hooks:
+  post-start:
+    - exec: wp config set WP_ALLOW_MULTISITE true --raw --allow-root 2>/dev/null || true
+    - exec: wp config set MULTISITE true --raw --allow-root 2>/dev/null || true
+    - exec: wp config set SUBDOMAIN_INSTALL false --raw --allow-root 2>/dev/null || true
+    - exec: wp config set DOMAIN_CURRENT_SITE "${LOCAL_DOMAIN}" --allow-root 2>/dev/null || true
+    - exec: wp config set PATH_CURRENT_SITE "/" --allow-root 2>/dev/null || true
+    - exec: wp config set SITE_ID_CURRENT_SITE 1 --raw --allow-root 2>/dev/null || true
+    - exec: wp config set BLOG_ID_CURRENT_SITE 1 --raw --allow-root 2>/dev/null || true
+    - exec: wp config set WP_DEBUG true --raw --allow-root 2>/dev/null || true
+    - exec: wp config set WP_DEBUG_DISPLAY false --raw --allow-root 2>/dev/null || true
+    - exec: wp config set WP_DEBUG_LOG true --raw --allow-root 2>/dev/null || true
+HOOKSEOF
+  fi
+
+  # Restart to pick up Nginx config
+  echo "Restarting DDEV with multisite config..."
+  ddev restart
+fi
+
+# Download WordPress core if not present
+if [ ! -f wp-includes/version.php ]; then
+  echo "Downloading WordPress core..."
+  ddev exec wp core download --allow-root
+fi
+
+# Pull files from WP Engine
+ddev rpx-files
+
+# Pull and import database
+ddev rpx-db
+
+# For single sites, set debug config (multisite does this via hooks)
+if [ "$IS_MULTISITE" != "yes" ]; then
+  ddev exec wp config set WP_DEBUG true --raw --allow-root 2>/dev/null
+  ddev exec wp config set WP_DEBUG_DISPLAY false --raw --allow-root 2>/dev/null
+  ddev exec wp config set WP_DEBUG_LOG true --raw --allow-root 2>/dev/null
+fi
+
+echo ""
+echo "============================================"
+SITE_URL=$(ddev describe -j | grep -o '"https://[^"]*"' | head -1 | tr -d '"')
+echo "Setup complete!"
+echo "Site: ${SITE_URL}"
+echo "Admin: ${SITE_URL}/wp-admin"
+if [ "$IS_MULTISITE" = "yes" ]; then
+  echo "Network Admin: ${SITE_URL}/wp-admin/network/"
+fi
+echo "============================================"

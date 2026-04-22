@@ -1,0 +1,55 @@
+#!/bin/bash
+
+## Description: Pull database from WP Engine and import locally
+## Usage: rpx-db
+## Example: ddev rpx-db
+
+set -e
+source .env
+
+if [ -z "$WPENGINE_ENV" ] || [ -z "$PRODUCTION_URL" ]; then
+  echo "Error: WPENGINE_ENV and PRODUCTION_URL must be set in .env"
+  exit 1
+fi
+
+WPENGINE_SSH="${WPENGINE_ENV}@${WPENGINE_ENV}.ssh.wpengine.net"
+PROD_DOMAIN=$(echo "$PRODUCTION_URL" | sed -E 's|https?://||')
+SITE_URL=$(ddev describe -j | grep -o '"https://[^"]*"' | head -1 | tr -d '"')
+LOCAL_DOMAIN=$(echo "$SITE_URL" | sed -E 's|https?://||')
+
+echo "Exporting database from ${WPENGINE_ENV}..."
+ddev exec bash -c "ssh -o StrictHostKeyChecking=accept-new ${WPENGINE_SSH} 'cd /sites/${WPENGINE_ENV} && wp db export -' > /tmp/db-snapshot.sql"
+
+echo "Importing into local database..."
+ddev exec wp db import /tmp/db-snapshot.sql --allow-root
+
+echo "Replacing URLs..."
+if [ "$IS_MULTISITE" = "yes" ]; then
+  # Set multisite constants in wp-config.php
+  echo "Configuring multisite..."
+  ddev exec wp config set WP_ALLOW_MULTISITE true --raw --allow-root 2>/dev/null
+  ddev exec wp config set MULTISITE true --raw --allow-root 2>/dev/null
+  ddev exec wp config set SUBDOMAIN_INSTALL false --raw --allow-root 2>/dev/null
+  ddev exec wp config set DOMAIN_CURRENT_SITE "$LOCAL_DOMAIN" --allow-root 2>/dev/null
+  ddev exec wp config set PATH_CURRENT_SITE "/" --allow-root 2>/dev/null
+  ddev exec wp config set SITE_ID_CURRENT_SITE 1 --raw --allow-root 2>/dev/null
+  ddev exec wp config set BLOG_ID_CURRENT_SITE 1 --raw --allow-root 2>/dev/null
+
+  # Update the bare domain in wp_site and wp_blogs first (so WP-CLI can bootstrap)
+  echo "Updating multisite domain tables..."
+  ddev exec bash -c "mysql -uroot -proot db -e \"UPDATE wp_site SET domain='${LOCAL_DOMAIN}' WHERE domain='${PROD_DOMAIN}';\""
+  ddev exec bash -c "mysql -uroot -proot db -e \"UPDATE wp_blogs SET domain='${LOCAL_DOMAIN}' WHERE domain='${PROD_DOMAIN}';\""
+
+  # Now search-replace URLs across all network tables
+  ddev exec wp search-replace "https://${PROD_DOMAIN}" "${SITE_URL}" --network --all-tables --skip-columns=guid --allow-root 2>&1 | tail -1
+  ddev exec wp search-replace "http://${PROD_DOMAIN}" "${SITE_URL}" --network --all-tables --skip-columns=guid --allow-root 2>&1 | tail -1
+else
+  ddev exec wp search-replace "https://${PROD_DOMAIN}" "${SITE_URL}" --skip-columns=guid --allow-root 2>&1 | tail -1
+  ddev exec wp search-replace "http://${PROD_DOMAIN}" "${SITE_URL}" --skip-columns=guid --allow-root 2>&1 | tail -1
+fi
+
+# Clean up
+ddev exec rm -f /tmp/db-snapshot.sql
+
+echo ""
+echo "Database imported. Live content is now available locally."
