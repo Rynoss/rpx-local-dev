@@ -140,6 +140,12 @@ HOOKSEOF
   ddev restart
 fi
 
+# Install Codespaces mu-plugin (fixes port 443 redirect, harmless locally)
+if [ -f .ddev/wp-content/mu-plugins/codespaces-fix.php ]; then
+  mkdir -p wp-content/mu-plugins
+  cp .ddev/wp-content/mu-plugins/codespaces-fix.php wp-content/mu-plugins/codespaces-fix.php
+fi
+
 # Download WordPress core if not present
 if [ ! -f wp-includes/version.php ]; then
   echo "Downloading WordPress core..."
