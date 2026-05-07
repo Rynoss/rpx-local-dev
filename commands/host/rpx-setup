@@ -49,8 +49,8 @@ if ! grep -q "rpx-post-start" .ddev/config.yaml; then
 hooks:
   post-start:
     - exec: |
-        if [ -f wp-config.php ] && ! grep -q "wp-config-local.php" wp-config.php; then
-          sed -i "/<?php/a if (file_exists(dirname(ABSPATH) . '/wp-config-local.php')) { require_once dirname(ABSPATH) . '/wp-config-local.php'; }" wp-config.php
+        if [ -f /var/www/html/.ddev/wp/wp-config.php ] && ! grep -q "wp-config-local.php" /var/www/html/.ddev/wp/wp-config.php; then
+          sed -i "/<?php/a if (file_exists(dirname(ABSPATH) . '/wp-config-local.php')) { require_once dirname(ABSPATH) . '/wp-config-local.php'; }" /var/www/html/.ddev/wp/wp-config.php
         fi
 HOOKSEOF
 fi
