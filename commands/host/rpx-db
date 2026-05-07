@@ -1,4 +1,5 @@
 #!/bin/bash
+#ddev-generated
 
 ## Description: Pull database from WP Engine and import locally
 ## Usage: rpx-db

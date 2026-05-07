@@ -1,4 +1,5 @@
 #!/bin/bash
+#ddev-generated
 
 ## Description: First-time project setup (WP core, files + DB from WP Engine)
 ## Usage: rpx-setup

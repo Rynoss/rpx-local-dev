@@ -1,4 +1,5 @@
 <?php
+// #ddev-generated
 /**
  * Local-only WordPress constants. Edit freely.
  *

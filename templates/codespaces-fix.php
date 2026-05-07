@@ -1,4 +1,5 @@
 <?php
+// #ddev-generated
 /**
  * Fix WordPress port 443 redirect in GitHub Codespaces.
  * Reads the correct host from the Codespaces proxy headers.

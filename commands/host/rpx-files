@@ -1,4 +1,5 @@
 #!/bin/bash
+#ddev-generated
 
 ## Description: Pull wp-content from WP Engine (themes, plugins, uploads — excluding active theme)
 ## Usage: rpx-files
