@@ -16,12 +16,13 @@ WPENGINE_SSH="${WPENGINE_ENV}@${WPENGINE_ENV}.ssh.wpengine.net"
 PROD_DOMAIN=$(echo "$PRODUCTION_URL" | sed -E 's|https?://||')
 SITE_URL=$(ddev describe -j | grep -o '"https://[^"]*"' | head -1 | tr -d '"')
 LOCAL_DOMAIN=$(echo "$SITE_URL" | sed -E 's|https?://||')
+WP_PATH="/var/www/html/.ddev/wp"
 
 echo "Exporting database from ${WPENGINE_ENV}..."
 ddev exec bash -c "ssh -o StrictHostKeyChecking=accept-new ${WPENGINE_SSH} 'cd /sites/${WPENGINE_ENV} && wp db export -' > /tmp/db-snapshot.sql"
 
 echo "Importing into local database..."
-ddev exec wp db import /tmp/db-snapshot.sql --allow-root
+ddev exec wp db import /tmp/db-snapshot.sql --path=${WP_PATH} --allow-root
 
 echo "Replacing URLs..."
 if [ "$IS_MULTISITE" = "yes" ]; then
@@ -29,11 +30,11 @@ if [ "$IS_MULTISITE" = "yes" ]; then
   ddev exec bash -c "mysql -uroot -proot db -e \"UPDATE wp_site SET domain='${LOCAL_DOMAIN}' WHERE domain='${PROD_DOMAIN}';\""
   ddev exec bash -c "mysql -uroot -proot db -e \"UPDATE wp_blogs SET domain='${LOCAL_DOMAIN}' WHERE domain='${PROD_DOMAIN}';\""
 
-  ddev exec wp search-replace "https://${PROD_DOMAIN}" "${SITE_URL}" --network --all-tables --skip-columns=guid --allow-root 2>&1 | tail -1
-  ddev exec wp search-replace "http://${PROD_DOMAIN}" "${SITE_URL}" --network --all-tables --skip-columns=guid --allow-root 2>&1 | tail -1
+  ddev exec wp search-replace "https://${PROD_DOMAIN}" "${SITE_URL}" --network --all-tables --skip-columns=guid --path=${WP_PATH} --allow-root 2>&1 | tail -1
+  ddev exec wp search-replace "http://${PROD_DOMAIN}" "${SITE_URL}" --network --all-tables --skip-columns=guid --path=${WP_PATH} --allow-root 2>&1 | tail -1
 else
-  ddev exec wp search-replace "https://${PROD_DOMAIN}" "${SITE_URL}" --skip-columns=guid --allow-root 2>&1 | tail -1
-  ddev exec wp search-replace "http://${PROD_DOMAIN}" "${SITE_URL}" --skip-columns=guid --allow-root 2>&1 | tail -1
+  ddev exec wp search-replace "https://${PROD_DOMAIN}" "${SITE_URL}" --skip-columns=guid --path=${WP_PATH} --allow-root 2>&1 | tail -1
+  ddev exec wp search-replace "http://${PROD_DOMAIN}" "${SITE_URL}" --skip-columns=guid --path=${WP_PATH} --allow-root 2>&1 | tail -1
 fi
 
 ddev exec rm -f /tmp/db-snapshot.sql

@@ -129,18 +129,19 @@ echo "Loading SSH keys..."
 ddev auth ssh
 
 # 7. Install WordPress core into .ddev/wp/ if missing
-if ! ddev exec test -f wp-includes/version.php 2>/dev/null; then
+if ! ddev exec test -f .ddev/wp/wp-includes/version.php 2>/dev/null; then
   echo "Downloading WordPress core into .ddev/wp/..."
-  ddev exec wp core download --allow-root
+  ddev exec wp core download --path=/var/www/html/.ddev/wp --allow-root
   # Restart so DDEV creates wp-config.php and post-start hook injects the require
   echo "Restarting so DDEV picks up WordPress core..."
   ddev restart
 fi
 
 # Belt and suspenders: ensure require line exists immediately
-ddev exec bash -c "if [ -f wp-config.php ] && ! grep -q 'wp-config-local.php' wp-config.php; then sed -i \"/<?php/a if (file_exists(dirname(ABSPATH) . '/wp-config-local.php')) { require_once dirname(ABSPATH) . '/wp-config-local.php'; }\" wp-config.php; fi" || true
+ddev exec bash -c "cd /var/www/html/.ddev/wp && if [ -f wp-config.php ] && ! grep -q 'wp-config-local.php' wp-config.php; then sed -i \"/<?php/a if (file_exists(dirname(ABSPATH) . '/wp-config-local.php')) { require_once dirname(ABSPATH) . '/wp-config-local.php'; }\" wp-config.php; fi" || true
 
 # 8. Symlink active theme back to repo root (so the repo IS the theme)
+mkdir -p .ddev/wp/wp-content/themes
 THEME_PATH=".ddev/wp/wp-content/themes/${ACTIVE_THEME_NAME}"
 if [ ! -L "$THEME_PATH" ]; then
   rm -rf "$THEME_PATH"
@@ -151,7 +152,7 @@ fi
 
 # 9. Install Codespaces mu-plugin (harmless locally)
 mkdir -p .ddev/wp/wp-content/mu-plugins
-cp .ddev/templates/codespaces-fix.php .ddev/wp/wp-content/mu-plugins/codespaces-fix.php
+cp -f .ddev/templates/codespaces-fix.php .ddev/wp/wp-content/mu-plugins/codespaces-fix.php
 
 # 10. Pull files and database from WP Engine
 ddev rpx-files
