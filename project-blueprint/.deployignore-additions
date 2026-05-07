@@ -1,0 +1,7 @@
+# Append these lines to the repo's existing .deployignore.
+# These prevent local-dev tooling from being deployed to WP Engine.
+
+.ddev
+.devcontainer
+.env
+.env.template

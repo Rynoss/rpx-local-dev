@@ -9,7 +9,8 @@ This folder is the **blueprint** for what each new RPX project repo should conta
 3. Substitute placeholders (see table below).
 4. Rename `.env.template` to `.env`.
 5. **Append** `.gitignore-additions` to the repo's existing `.gitignore` (do not overwrite). Then delete `.gitignore-additions`.
-6. Commit and push the result.
+6. **Append** `.deployignore-additions` to the repo's existing `.deployignore` (do not overwrite). Then delete `.deployignore-additions`.
+7. Commit and push the result.
 
 ## Files in this blueprint
 
@@ -20,6 +21,7 @@ This folder is the **blueprint** for what each new RPX project repo should conta
 .devcontainer/setup-ssh.sh            # identical across repos
 .env.template                         # rename to .env, fill placeholders
 .gitignore-additions                  # append to existing .gitignore
+.deployignore-additions               # append to existing .deployignore
 ```
 
 ## Placeholders
@@ -51,10 +53,10 @@ sed -i "s|{{IS_MULTISITE}}|${IS_MULTISITE}|g" .env.template
 # 3. Rename .env.template -> .env
 mv .env.template .env
 
-# 4. Append .gitignore-additions to existing .gitignore
-touch .gitignore
-cat .gitignore-additions >> .gitignore
-rm .gitignore-additions
+# 4. Append .gitignore-additions and .deployignore-additions
+touch .gitignore .deployignore
+cat .gitignore-additions >> .gitignore && rm .gitignore-additions
+cat .deployignore-additions >> .deployignore && rm .deployignore-additions
 
 # 5. Remove the blueprint README (this file isn't copied — it stays in the addon repo)
 ```

@@ -3,3 +3,12 @@ type: wordpress
 php_version: "8.4"
 webserver_type: nginx-fpm
 performance_mode: mutagen
+docroot: .ddev/wp
+
+# Re-inject wp-config-local.php require on every start (survives DDEV regeneration of wp-config.php)
+hooks:
+  post-start:
+    - exec: |
+        if [ -f /var/www/html/.ddev/wp/wp-config.php ] && ! grep -q "wp-config-local.php" /var/www/html/.ddev/wp/wp-config.php; then
+          sed -i "/<?php/a if (file_exists(dirname(ABSPATH) . '/wp-config-local.php')) { require_once dirname(ABSPATH) . '/wp-config-local.php'; }" /var/www/html/.ddev/wp/wp-config.php
+        fi

@@ -28,21 +28,18 @@ fi
 echo "============================================"
 echo ""
 
-# 1. Ensure docroot is set to .ddev/wp
+# 1. Ensure docroot directory exists (config.yaml from blueprint already sets docroot: .ddev/wp)
 mkdir -p .ddev/wp
-if ! grep -q "^docroot:" .ddev/config.yaml; then
-  echo "docroot: .ddev/wp" >> .ddev/config.yaml
-elif ! grep -q "^docroot: \.ddev/wp" .ddev/config.yaml; then
-  sed -i.bak "s|^docroot:.*|docroot: .ddev/wp|" .ddev/config.yaml && rm -f .ddev/config.yaml.bak
-fi
 
-# 2. Seed wp-config-local.php from template if it doesn't exist (preserve user edits)
-if [ ! -f .ddev/wp-config-local.php ]; then
-  cp .ddev/templates/wp-config-local.php .ddev/wp-config-local.php
+# Self-heal config.yaml if blueprint not used (e.g., older repo). Adds docroot and hooks.
+if ! grep -q "^docroot: \.ddev/wp" .ddev/config.yaml; then
+  if grep -q "^docroot:" .ddev/config.yaml; then
+    sed -i.bak "s|^docroot:.*|docroot: .ddev/wp|" .ddev/config.yaml && rm -f .ddev/config.yaml.bak
+  else
+    echo "docroot: .ddev/wp" >> .ddev/config.yaml
+  fi
 fi
-
-# 3. Configure post-start hook so wp-config.php requires our local file on every start
-if ! grep -q "rpx-post-start" .ddev/config.yaml; then
+if ! grep -q "wp-config-local.php" .ddev/config.yaml; then
   cat >> .ddev/config.yaml <<HOOKSEOF
 
 # rpx-post-start: keep wp-config.php pointing at .ddev/wp-config-local.php
@@ -53,6 +50,14 @@ hooks:
           sed -i "/<?php/a if (file_exists(dirname(ABSPATH) . '/wp-config-local.php')) { require_once dirname(ABSPATH) . '/wp-config-local.php'; }" /var/www/html/.ddev/wp/wp-config.php
         fi
 HOOKSEOF
+fi
+
+# 2. Clean up stray wp-config files at project root (from pre-docroot DDEV starts)
+rm -f wp-config.php wp-config-ddev.php wp-config-sample.php
+
+# 3. Seed wp-config-local.php from template if it doesn't exist (preserve user edits)
+if [ ! -f .ddev/wp-config-local.php ]; then
+  cp .ddev/templates/wp-config-local.php .ddev/wp-config-local.php
 fi
 
 # 4. Multisite Nginx config (only if needed)
