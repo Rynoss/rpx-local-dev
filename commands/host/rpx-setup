@@ -13,8 +13,8 @@ if [ ! -f .env ]; then
 fi
 source .env
 
-if [ -z "$WPENGINE_ENV" ] || [ -z "$PRODUCTION_URL" ] || [ -z "$ACTIVE_THEME_NAME" ]; then
-  echo "Error: WPENGINE_ENV, PRODUCTION_URL, and ACTIVE_THEME_NAME must be set in .env"
+if [ -z "$WPENGINE_ENV" ] || [ -z "$ACTIVE_THEME_NAME" ]; then
+  echo "Error: WPENGINE_ENV and ACTIVE_THEME_NAME must be set in .env"
   exit 1
 fi
 

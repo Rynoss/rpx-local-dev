@@ -31,9 +31,10 @@ All placeholders are in `.env.template`.
 | Placeholder | Example value |
 |---|---|
 | `{{WPENGINE_ENV}}` | `clientnameprd` |
-| `{{PRODUCTION_URL}}` | `https://www.clientname.com` |
 | `{{ACTIVE_THEME_NAME}}` | `theme-3-child` |
 | `{{IS_MULTISITE}}` | `yes` or `no` |
+
+The production URL is read from WP Engine at pull-time (`wp option get siteurl`) — no placeholder needed and no manual update required when the site launches.
 
 DDEV's project name (used in the local URL `https://<name>.ddev.site`) is auto-detected from the cloned folder name — no placeholder needed.
 
@@ -48,7 +49,6 @@ cp -r /tmp/rpx-local-dev/_project_dev_blueprint/. ./
 
 # 2. Substitute placeholders (all in .env.template)
 sed -i "s|{{WPENGINE_ENV}}|${WPENGINE_ENV}|g" .env.template
-sed -i "s|{{PRODUCTION_URL}}|${PRODUCTION_URL}|g" .env.template
 sed -i "s|{{ACTIVE_THEME_NAME}}|${ACTIVE_THEME_NAME}|g" .env.template
 sed -i "s|{{IS_MULTISITE}}|${IS_MULTISITE}|g" .env.template
 

@@ -40,10 +40,11 @@ performance_mode: mutagen
 ### `.env`
 ```env
 WPENGINE_ENV=clientsite
-PRODUCTION_URL=https://www.clientsite.com
 ACTIVE_THEME_NAME=theme-3-child
 IS_MULTISITE=no
 ```
+
+The production URL is auto-detected from WP Engine at pull-time, so devs never need to update `.env` when a site launches and the domain changes.
 
 ### `.ddev/commands/host/rpx-init`
 ```bash

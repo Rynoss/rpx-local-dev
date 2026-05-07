@@ -8,16 +8,24 @@
 set -e
 source .env
 
-if [ -z "$WPENGINE_ENV" ] || [ -z "$PRODUCTION_URL" ]; then
-  echo "Error: WPENGINE_ENV and PRODUCTION_URL must be set in .env"
+if [ -z "$WPENGINE_ENV" ]; then
+  echo "Error: WPENGINE_ENV must be set in .env"
   exit 1
 fi
 
 WPENGINE_SSH="${WPENGINE_ENV}@${WPENGINE_ENV}.ssh.wpengine.net"
-PROD_DOMAIN=$(echo "$PRODUCTION_URL" | sed -E 's|https?://||')
 SITE_URL=$(ddev describe -j | grep -o '"https://[^"]*"' | head -1 | tr -d '"')
 LOCAL_DOMAIN=$(echo "$SITE_URL" | sed -E 's|https?://||')
 WP_PATH="/var/www/html/.ddev/wp"
+
+echo "Reading current site URL from ${WPENGINE_ENV}..."
+PROD_URL=$(ddev exec bash -c "ssh -o StrictHostKeyChecking=accept-new ${WPENGINE_SSH} 'cd /sites/${WPENGINE_ENV} && wp option get siteurl'" | tr -d '\r' | tail -1)
+if [ -z "$PROD_URL" ]; then
+  echo "Error: could not read siteurl from WP Engine. Check WPENGINE_ENV and SSH access."
+  exit 1
+fi
+PROD_DOMAIN=$(echo "$PROD_URL" | sed -E 's|https?://||')
+echo "Production URL: ${PROD_URL}"
 
 echo "Exporting database from ${WPENGINE_ENV}..."
 ddev exec bash -c "ssh -o StrictHostKeyChecking=accept-new ${WPENGINE_SSH} 'cd /sites/${WPENGINE_ENV} && wp db export -' > /tmp/db-snapshot.sql"
@@ -25,7 +33,7 @@ ddev exec bash -c "ssh -o StrictHostKeyChecking=accept-new ${WPENGINE_SSH} 'cd /
 echo "Importing into local database..."
 ddev exec wp db import /tmp/db-snapshot.sql --path=${WP_PATH} --allow-root
 
-echo "Replacing URLs..."
+echo "Replacing URLs (${PROD_DOMAIN} -> ${LOCAL_DOMAIN})..."
 if [ "$IS_MULTISITE" = "yes" ]; then
   echo "Updating multisite domain tables..."
   ddev exec bash -c "mysql -uroot -proot db -e \"UPDATE wp_site SET domain='${LOCAL_DOMAIN}' WHERE domain='${PROD_DOMAIN}';\""

@@ -24,6 +24,8 @@ ddev exec rsync -avz --progress \
   --exclude="cache/" \
   --exclude="backup-db/" \
   --exclude="updraft/" \
+  --exclude="*.sql" \
+  --exclude="*.sql.gz" \
   --exclude="themes/${ACTIVE_THEME_NAME}/" \
   --exclude="mu-plugins/wpengine-common/" \
   --exclude="mu-plugins/wpe-*" \
