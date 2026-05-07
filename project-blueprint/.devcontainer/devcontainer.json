@@ -1,0 +1,22 @@
+{
+  "name": "RPX Local Dev",
+  "image": "mcr.microsoft.com/devcontainers/base:ubuntu",
+  "features": {
+    "ghcr.io/devcontainers/features/docker-in-docker:2": {},
+    "ghcr.io/ddev/ddev/install-ddev:latest": {}
+  },
+  "postCreateCommand": "bash .devcontainer/setup-ssh.sh && ddev config global --omit-containers=ddev-router",
+  "forwardPorts": [8080, 8443],
+  "secrets": {
+    "WPE_SSH_KEY_PRIVATE": {
+      "description": "WP Engine SSH private key for pulling sites"
+    }
+  },
+  "customizations": {
+    "vscode": {
+      "extensions": [
+        "bmewburn.vscode-intelephense-client"
+      ]
+    }
+  }
+}
