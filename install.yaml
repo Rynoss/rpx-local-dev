@@ -6,4 +6,5 @@ project_files:
   - commands/host/rpx-db
   - commands/host/rpx-files
   - php/display-errors.ini
-  - wp-content/mu-plugins/codespaces-fix.php
+  - templates/wp-config-local.php
+  - templates/codespaces-fix.php
