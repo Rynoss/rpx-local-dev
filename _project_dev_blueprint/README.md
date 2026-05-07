@@ -15,7 +15,7 @@ This folder is the **blueprint** for what each new RPX project repo should conta
 ## Files in this blueprint
 
 ```
-.ddev/config.yaml                     # has {{REPO_NAME}}
+.ddev/config.yaml                     # identical across repos
 .ddev/commands/host/rpx-init          # identical across repos
 .devcontainer/devcontainer.json       # identical across repos
 .devcontainer/setup-ssh.sh            # identical across repos
@@ -26,13 +26,16 @@ This folder is the **blueprint** for what each new RPX project repo should conta
 
 ## Placeholders
 
-| Placeholder | Example value | Where it appears |
-|---|---|---|
-| `{{REPO_NAME}}` | `clientname-theme` | `.ddev/config.yaml` |
-| `{{WPENGINE_ENV}}` | `clientnameprd` | `.env.template` |
-| `{{PRODUCTION_URL}}` | `https://www.clientname.com` | `.env.template` |
-| `{{ACTIVE_THEME_NAME}}` | `theme-3-child` | `.env.template` |
-| `{{IS_MULTISITE}}` | `yes` or `no` | `.env.template` |
+All placeholders are in `.env.template`.
+
+| Placeholder | Example value |
+|---|---|
+| `{{WPENGINE_ENV}}` | `clientnameprd` |
+| `{{PRODUCTION_URL}}` | `https://www.clientname.com` |
+| `{{ACTIVE_THEME_NAME}}` | `theme-3-child` |
+| `{{IS_MULTISITE}}` | `yes` or `no` |
+
+DDEV's project name (used in the local URL `https://<name>.ddev.site`) is auto-detected from the cloned folder name — no placeholder needed.
 
 `ACTIVE_THEME_NAME` is whatever WordPress treats as the active theme — the directory name under `wp-content/themes/` on WP Engine. Use the child theme directory name if there is one, otherwise the parent theme directory name.
 
@@ -43,8 +46,7 @@ This folder is the **blueprint** for what each new RPX project repo should conta
 git clone --depth 1 https://github.com/Rynoss/rpx-local-dev /tmp/rpx-local-dev
 cp -r /tmp/rpx-local-dev/_project_dev_blueprint/. ./
 
-# 2. Substitute placeholders
-sed -i "s|{{REPO_NAME}}|${REPO_NAME}|g" .ddev/config.yaml
+# 2. Substitute placeholders (all in .env.template)
 sed -i "s|{{WPENGINE_ENV}}|${WPENGINE_ENV}|g" .env.template
 sed -i "s|{{PRODUCTION_URL}}|${PRODUCTION_URL}|g" .env.template
 sed -i "s|{{ACTIVE_THEME_NAME}}|${ACTIVE_THEME_NAME}|g" .env.template

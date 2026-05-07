@@ -1,4 +1,3 @@
-name: {{REPO_NAME}}
 type: wordpress
 php_version: "8.4"
 webserver_type: nginx-fpm
