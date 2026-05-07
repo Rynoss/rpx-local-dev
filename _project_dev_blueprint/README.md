@@ -5,7 +5,7 @@ This folder is the **blueprint** for what each new RPX project repo should conta
 ## How the pipeline uses this folder
 
 1. Pull `Rynoss/rpx-local-dev` (this repo).
-2. Copy the contents of `project-blueprint/` (NOT this README) into the target repo.
+2. Copy the contents of `_project_dev_blueprint/` (NOT this README) into the target repo.
 3. Substitute placeholders (see table below).
 4. Rename `.env.template` to `.env`.
 5. **Append** `.gitignore-additions` to the repo's existing `.gitignore` (do not overwrite). Then delete `.gitignore-additions`.
@@ -41,7 +41,7 @@ This folder is the **blueprint** for what each new RPX project repo should conta
 ```bash
 # 1. Pull blueprint
 git clone --depth 1 https://github.com/Rynoss/rpx-local-dev /tmp/rpx-local-dev
-cp -r /tmp/rpx-local-dev/project-blueprint/. ./
+cp -r /tmp/rpx-local-dev/_project_dev_blueprint/. ./
 
 # 2. Substitute placeholders
 sed -i "s|{{REPO_NAME}}|${REPO_NAME}|g" .ddev/config.yaml

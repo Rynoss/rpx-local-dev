@@ -24,7 +24,7 @@ The project repo IS the active theme. WordPress is installed into `.ddev/wp/` on
 
 ## Per-Project Setup
 
-The blueprint of files each project repo needs lives in [`project-blueprint/`](./project-blueprint/) — devops pipelines pull from there. Below is what ends up in each repo:
+The blueprint of files each project repo needs lives in [`_project_dev_blueprint/`](./_project_dev_blueprint/) — devops pipelines pull from there. Below is what ends up in each repo:
 
 ### `.ddev/config.yaml`
 ```yaml
