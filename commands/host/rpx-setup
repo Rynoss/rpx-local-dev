@@ -29,39 +29,15 @@ fi
 echo "============================================"
 echo ""
 
-# 1. Ensure docroot directory exists (config.yaml from blueprint already sets docroot: .ddev/wp)
+# 1. Ensure docroot directory exists (blueprint config.yaml sets docroot: .ddev/wp)
 mkdir -p .ddev/wp
 
-# Self-heal config.yaml if blueprint not used (e.g., older repo). Adds docroot and hooks.
-if ! grep -q "^docroot: \.ddev/wp" .ddev/config.yaml; then
-  if grep -q "^docroot:" .ddev/config.yaml; then
-    sed -i.bak "s|^docroot:.*|docroot: .ddev/wp|" .ddev/config.yaml && rm -f .ddev/config.yaml.bak
-  else
-    echo "docroot: .ddev/wp" >> .ddev/config.yaml
-  fi
-fi
-if ! grep -q "wp-config-local.php" .ddev/config.yaml; then
-  cat >> .ddev/config.yaml <<HOOKSEOF
-
-# rpx-post-start: keep wp-config.php pointing at .ddev/wp-config-local.php
-hooks:
-  post-start:
-    - exec: |
-        if [ -f /var/www/html/.ddev/wp/wp-config.php ] && ! grep -q "wp-config-local.php" /var/www/html/.ddev/wp/wp-config.php; then
-          sed -i "/<?php/a if (file_exists(dirname(ABSPATH) . '/wp-config-local.php')) { require_once dirname(ABSPATH) . '/wp-config-local.php'; }" /var/www/html/.ddev/wp/wp-config.php
-        fi
-HOOKSEOF
-fi
-
-# 2. Clean up stray wp-config files at project root (from pre-docroot DDEV starts)
-rm -f wp-config.php wp-config-ddev.php wp-config-sample.php
-
-# 3. Seed wp-config-local.php from template if it doesn't exist (preserve user edits)
+# 2. Seed wp-config-local.php from template if it doesn't exist (preserve user edits)
 if [ ! -f .ddev/wp-config-local.php ]; then
   cp .ddev/templates/wp-config-local.php .ddev/wp-config-local.php
 fi
 
-# 4. Multisite Nginx config (only if needed)
+# 3. Multisite Nginx config (only if needed)
 if [ "$IS_MULTISITE" = "yes" ]; then
   echo "Installing multisite Nginx config..."
   mkdir -p .ddev/nginx_full
@@ -126,27 +102,21 @@ server {
 NGINXEOF
 fi
 
-# 5. Restart DDEV to pick up docroot + hooks + nginx
+# 4. Restart DDEV to apply nginx config + auto_prepend_file PHP setting
 echo "Restarting DDEV..."
 ddev restart
 
-# 6. Load SSH keys
+# 5. Load SSH keys
 echo "Loading SSH keys..."
 ddev auth ssh
 
-# 7. Install WordPress core into .ddev/wp/ if missing
+# 6. Install WordPress core into .ddev/wp/ if missing
 if ! ddev exec test -f .ddev/wp/wp-includes/version.php 2>/dev/null; then
   echo "Downloading WordPress core into .ddev/wp/..."
   ddev exec wp core download --path=/var/www/html/.ddev/wp --allow-root
-  # Restart so DDEV creates wp-config.php and post-start hook injects the require
-  echo "Restarting so DDEV picks up WordPress core..."
-  ddev restart
 fi
 
-# Belt and suspenders: ensure require line exists immediately
-ddev exec bash -c "cd /var/www/html/.ddev/wp && if [ -f wp-config.php ] && ! grep -q 'wp-config-local.php' wp-config.php; then sed -i \"/<?php/a if (file_exists(dirname(ABSPATH) . '/wp-config-local.php')) { require_once dirname(ABSPATH) . '/wp-config-local.php'; }\" wp-config.php; fi" || true
-
-# 8. Symlink active theme back to repo root (so the repo IS the theme)
+# 7. Symlink active theme back to repo root (so the repo IS the theme)
 mkdir -p .ddev/wp/wp-content/themes
 THEME_PATH=".ddev/wp/wp-content/themes/${ACTIVE_THEME_NAME}"
 if [ ! -L "$THEME_PATH" ]; then
@@ -156,15 +126,15 @@ if [ ! -L "$THEME_PATH" ]; then
   echo "Symlinked ${THEME_PATH} -> repo root"
 fi
 
-# 9. Install Codespaces mu-plugin (harmless locally)
+# 8. Install Codespaces mu-plugin (harmless locally)
 mkdir -p .ddev/wp/wp-content/mu-plugins
 cp -f .ddev/templates/codespaces-fix.php .ddev/wp/wp-content/mu-plugins/codespaces-fix.php
 
-# 10. Pull files and database from WP Engine
+# 9. Pull files and database from WP Engine
 ddev rpx-files
 ddev rpx-db
 
-# 11. Set multisite constants in wp-config-local.php (idempotent)
+# 10. Set multisite constants in wp-config-local.php (loaded by PHP auto_prepend_file)
 if [ "$IS_MULTISITE" = "yes" ]; then
   SITE_URL=$(ddev describe -j | grep -o '"https://[^"]*"' | head -1 | tr -d '"')
   LOCAL_DOMAIN=$(echo "$SITE_URL" | sed -E 's|https?://||')
@@ -181,7 +151,6 @@ define('PATH_CURRENT_SITE', '/');
 define('SITE_ID_CURRENT_SITE', 1);
 define('BLOG_ID_CURRENT_SITE', 1);
 MSEOF
-    ddev restart
   fi
 fi
 
